@@ -6,7 +6,7 @@ services:
     container_name: ${CONTAINER_NAME:-go-application}
     environment:
       - DEBIAN_FRONTEND=noninteractive
-      - GITHUB_REPO=${GITHUB_REPO:-https://github.com/HashWarlock/infra-challenge-devops-cvm.git}
+      - GITHUB_REPO=https://github.com/HashWarlock/infra-challenge-devops-cvm.git
       - REPO_BRANCH=${REPO_BRANCH:-main}
       - COMMIT_HASH=${COMMIT_HASH:-}
       - GO_VERSION=${GO_VERSION:-1.21.5}
@@ -15,10 +15,10 @@ services:
       - PATH=/usr/local/go/bin:/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       - APP_PORT=${APP_PORT:-8080}
     ports:
-      - "${HOST_PORT:-8080}:${APP_PORT:-8080}"
-    restart: ${RESTART_POLICY:-unless-stopped}
+      - "8080:8080"
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${APP_PORT:-8080}/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -33,11 +33,10 @@ services:
       echo '  Repository: $${GITHUB_REPO}' &&
       echo '  Branch: $${REPO_BRANCH}' &&
       echo '  Commit Hash: $${COMMIT_HASH:-latest}' &&
-      echo '  App Port: $${APP_PORT}' &&
       echo '========================================' &&
       echo 'Installing required packages...' &&
       apt-get update -qq &&
-      apt-get install -y -qq git curl wget build-essential ca-certificates software-properties-common &&
+      apt-get install -y -qq git curl wget build-essential ca-certificates software-properties-common make &&
       echo 'Installing Go $${GO_VERSION}...' &&
       GO_TARBALL=go$${GO_VERSION}.linux-amd64.tar.gz &&
       wget -q https://go.dev/dl/$$GO_TARBALL &&
@@ -52,18 +51,10 @@ services:
       if [ -n \"$${COMMIT_HASH}\" ]; then
         echo 'Checking out commit: '$${COMMIT_HASH} &&
         git checkout $${COMMIT_HASH};
-      else
-        echo 'Using latest commit from branch: '$${REPO_BRANCH};
       fi &&
       echo 'Current commit: '$(git rev-parse HEAD) &&
-      echo 'Commit message: '$(git log -1 --pretty=%B) &&
-      echo 'Downloading Go dependencies...' &&
-      /usr/local/go/bin/go mod download || echo 'No go.mod found, continuing...' &&
-      echo 'Building Go application...' &&
-      /usr/local/go/bin/go build -o /app/main . &&
-      echo 'Build complete!' &&
       echo '========================================' &&
-      echo 'Starting Go application on port '$${APP_PORT}'...' &&
+      echo 'Running: make build && make run' &&
       echo '========================================' &&
-      exec /app/main
+      make build && make run
       "
